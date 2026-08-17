@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Certificate Verification — Local Admin/Test UI</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page-plane:     #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --border:         rgba(11,11,11,0.10);
+    --status-good:       #0ca30c;
+    --status-good-bg:    #e6f6e6;
+    --status-warning:    #fab219;
+    --status-warning-bg: #fff4dd;
+    --status-critical:   #d03b3b;
+    --status-critical-bg:#fbe9e9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page-plane:     #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --border:         rgba(255,255,255,0.10);
+      --status-good:       #0ca30c;
+      --status-good-bg:    #123a12;
+      --status-warning:    #fab219;
+      --status-warning-bg: #3a2c0d;
+      --status-critical:   #e66767;
+      --status-critical-bg:#3a1414;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page-plane);
+    color: var(--text-primary);
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 24px 64px; }
+  h1 { font-size: 20px; font-weight: 700; margin: 0 0 4px; }
+  .subtitle { color: var(--text-secondary); font-size: 14px; margin: 0 0 28px; }
+  .badge-dev {
+    display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .03em;
+    text-transform: uppercase; color: var(--status-warning);
+    background: var(--status-warning-bg); border-radius: 4px; padding: 2px 8px; margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+  .stat-tile {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .stat-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+  .stat-value { font-size: 28px; font-weight: 700; line-height: 1; }
+  .stat-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+
+  .panel {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px 22px; margin-bottom: 20px;
+  }
+  .panel h2 { font-size: 15px; margin: 0 0 4px; }
+  .panel .hint { font-size: 12px; color: var(--text-muted); margin: 0 0 16px; }
+
+  label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+  input, select {
+    width: 100%; font-size: 14px; padding: 8px 10px; border-radius: 6px;
+    border: 1px solid var(--gridline); background: var(--page-plane); color: var(--text-primary);
+    margin-bottom: 12px;
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  button {
+    font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 6px; border: none;
+    cursor: pointer;
+  }
+  button.primary { background: var(--text-primary); color: var(--surface-1); }
+  button.ghost { background: transparent; border: 1px solid var(--gridline); color: var(--text-primary); }
+  button:disabled { opacity: .5; cursor: default; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .03em;
+       color: var(--text-muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--gridline); }
+  td { padding: 10px 10px; border-bottom: 1px solid var(--gridline); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .muted { color: var(--text-muted); }
+  .notes-cell { max-width: 320px; font-size: 12px; color: var(--text-secondary); }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .chip.warning { background: var(--status-warning-bg); color: var(--text-primary); }
+  .chip.warning .dot { background: var(--status-warning); }
+  .chip.good { background: var(--status-good-bg); color: var(--text-primary); }
+  .chip.good .dot { background: var(--status-good); }
+
+  .row-actions { display: flex; gap: 8px; }
+  .empty-state { padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px; }
+  .toast {
+    position: fixed; bottom: 20px; right: 20px; background: var(--text-primary); color: var(--surface-1);
+    padding: 10px 16px; border-radius: 8px; font-size: 13px; opacity: 0; transform: translateY(8px);
+    transition: opacity .2s, transform .2s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+<div class="viz-root">
+  <div class="wrap">
+    <h1>Certificate Verification <span class="badge-dev">Dev / Local Only</span></h1>
+    <p class="subtitle">
+      Phase 3 admin &amp; test console. This page talks directly to this FastAPI service — it's not
+      the production UI (that's the Teams bot + Adaptive Cards, later). Use this to exercise
+      <code>/verify</code> and the <code>/exceptions</code> queue without curl or Swagger.
+    </p>
+
+    <div class="stat-row" id="stat-row">
+      <div class="stat-tile"><div class="stat-label">Employees</div><div class="stat-value" id="stat-employees">—</div></div>
+      <div class="stat-tile"><div class="stat-label"><span class="stat-dot" style="background:var(--status-good)"></span>Verified</div><div class="stat-value" id="stat-verified">—</div></div>
+      <div class="stat-tile"><div class="stat-label"><span class="stat-dot" style="background:var(--status-warning)"></span>Needs Review</div><div class="stat-value" id="stat-needs-review">—</div></div>
+      <div class="stat-tile"><div class="stat-label">Pending</div><div class="stat-value" id="stat-pending">—</div></div>
+    </div>
+
+    <div class="panel">
+      <h2>Quick-create a test employee</h2>
+      <p class="hint">Stand-in for the HRIS/directory sync that will exist later (BRD Section 11).</p>
+      <div class="form-row">
+        <div>
+          <label for="emp-name">Name</label>
+          <input id="emp-name" placeholder="e.g. Jahnavi Patel" />
+        </div>
+        <div>
+          <label for="emp-email">Email</label>
+          <input id="emp-email" placeholder="e.g. jahnavi.patel@intuitive.ai" />
+        </div>
+      </div>
+      <button class="ghost" id="create-employee-btn">Create employee</button>
+    </div>
+
+    <div class="panel">
+      <h2>Submit a certificate for verification</h2>
+      <p class="hint">Calls <code>POST /verify</code> — runs the real public-link cross-check + name-match guardrail.</p>
+      <div class="form-row">
+        <div>
+          <label for="verify-employee">Employee</label>
+          <select id="verify-employee"><option value="">Loading…</option></select>
+        </div>
+        <div>
+          <label for="verify-cert">Certification name</label>
+          <input id="verify-cert" placeholder="e.g. AWS Certified Cloud Practitioner" />
+        </div>
+      </div>
+      <label for="verify-url">Proof URL (public credential link)</label>
+      <input id="verify-url" placeholder="https://www.credly.com/badges/&lt;uuid&gt;/public_url" />
+      <button class="primary" id="verify-btn">Verify</button>
+      <div id="verify-result" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Exception queue</h2>
+      <p class="hint">Everything auto-verification couldn't confirm (FR-3.4) — approve or leave for follow-up.</p>
+      <table>
+        <thead>
+          <tr><th>Employee</th><th>Certification</th><th>Notes</th><th>Submitted</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody id="exceptions-body">
+          <tr><td colspan="6" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let toastTimer;
+function toast(msg) {
+  const el = $("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+async function api(path, options) {
+  const res = await fetch(path, options);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `${res.status} ${res.statusText}`);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+async function refreshStats() {
+  const stats = await api("/stats");
+  $("stat-employees").textContent = stats.total_employees;
+  $("stat-verified").textContent = stats.verified;
+  $("stat-needs-review").textContent = stats.needs_review;
+  $("stat-pending").textContent = stats.pending;
+}
+
+async function refreshEmployeeDropdown() {
+  const employees = await api("/employees");
+  const select = $("verify-employee");
+  select.innerHTML = "";
+  if (employees.length === 0) {
+    select.innerHTML = '<option value="">No employees yet — create one above</option>';
+    return;
+  }
+  employees.forEach((e) => {
+    const opt = document.createElement("option");
+    opt.value = e.id;
+    opt.textContent = `${e.name} (${e.email})`;
+    select.appendChild(opt);
+  });
+}
+
+function statusChip(status) {
+  if (status === "needs_review") {
+    return `<span class="chip warning"><span class="dot"></span>Needs review</span>`;
+  }
+  if (status === "verified") {
+    return `<span class="chip good"><span class="dot"></span>Verified</span>`;
+  }
+  return `<span class="muted">${status}</span>`;
+}
+
+async function refreshExceptions() {
+  const rows = await api("/exceptions");
+  const body = $("exceptions-body");
+  if (rows.length === 0) {
+    body.innerHTML = `<tr><td colspan="6" class="empty-state">Exception queue is empty — nothing waiting on human review.</td></tr>`;
+    return;
+  }
+  body.innerHTML = rows.map((v) => `
+    <tr data-id="${v.id}">
+      <td>${v.employee_name}<div class="muted" style="font-size:11px;">${v.employee_email}</div></td>
+      <td>${v.certification_name}</td>
+      <td class="notes-cell">${v.notes || ""}</td>
+      <td class="muted">${new Date(v.created_at).toLocaleString()}</td>
+      <td>${statusChip(v.status)}</td>
+      <td>
+        <div class="row-actions">
+          <button class="primary approve-btn" data-id="${v.id}">Approve</button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+
+  body.querySelectorAll(".approve-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        await api(`/exceptions/${btn.dataset.id}/resolve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            approve: true,
+            resolved_by: "ldadmin@intuitive.ai",
+            notes: "Approved manually from the local admin console.",
+          }),
+        });
+        toast("Approved. Refreshing…");
+        await Promise.all([refreshExceptions(), refreshStats()]);
+      } catch (err) {
+        toast(`Error: ${err.message}`);
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+$("create-employee-btn").addEventListener("click", async () => {
+  const name = $("emp-name").value.trim();
+  const email = $("emp-email").value.trim();
+  if (!name || !email) return toast("Name and email are both required.");
+  try {
+    await api("/employees", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email }),
+    });
+    $("emp-name").value = "";
+    $("emp-email").value = "";
+    toast("Employee created.");
+    await Promise.all([refreshEmployeeDropdown(), refreshStats()]);
+  } catch (err) {
+    toast(`Error: ${err.message}`);
+  }
+});
+
+$("verify-btn").addEventListener("click", async () => {
+  const employee_id = Number($("verify-employee").value);
+  const certification_name = $("verify-cert").value.trim();
+  const proof_url = $("verify-url").value.trim();
+  const resultEl = $("verify-result");
+  if (!employee_id || !certification_name || !proof_url) {
+    return toast("Employee, certification name, and proof URL are all required.");
+  }
+  resultEl.innerHTML = `<span class="muted">Verifying…</span>`;
+  try {
+    const v = await api("/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employee_id, certification_name, proof_url }),
+    });
+    resultEl.innerHTML = `${statusChip(v.status)} &nbsp; <span class="muted">${v.notes || ""}</span>`;
+    await Promise.all([refreshExceptions(), refreshStats()]);
+  } catch (err) {
+    resultEl.innerHTML = `<span class="chip warning"><span class="dot"></span>Request failed</span> <span class="muted">${err.message}</span>`;
+  }
+});
+
+(async function init() {
+  try {
+    await Promise.all([refreshStats(), refreshEmployeeDropdown(), refreshExceptions()]);
+  } catch (err) {
+    toast(`Startup error: ${err.message}`);
+  }
+})();
+</script>
+</body>
+</html>

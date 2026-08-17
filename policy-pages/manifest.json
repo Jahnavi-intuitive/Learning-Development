@@ -1,0 +1,35 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.19/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.19",
+  "version": "1.0.0",
+  "id": "94cc2407-4f47-4716-b504-c9da7c992230",
+  "developer": {
+    "name": "Jahnavi Patel",
+    "websiteUrl": "https://lq38qqbw-8000.asse.devtunnels.ms",
+    "privacyUrl": "https://lq38qqbw-8000.asse.devtunnels.ms/legal/privacy-policy.html",
+    "termsOfUseUrl": "https://lq38qqbw-8000.asse.devtunnels.ms/legal/terms-of-use.html"
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "name": {
+    "short": "Learning and Development",
+    "full": "Learning and Development - Certificate Verification (Test)"
+  },
+  "description": {
+    "short": "Verify a certification by name, email, and credential link (personal test).",
+    "full": "Learning and Development - Certificate Verification is a personal test bot for trying out an automated certificate-verification workflow inside Microsoft Teams. Send it a certification claim -- name, work email, certification name, and a public credential link (for example, a Credly badge URL) -- and it checks the credential against its public badge page, then replies with a Verified or Needs Review result.\n\nThis is a single-developer test running on a local machine through a temporary tunnel, not a published or supported product. It's meant only for the developer running the test (and anyone they've explicitly invited) to evaluate the verification workflow. See the Privacy Policy and Terms of Use linked from this app's listing for details on what data it touches and how it's used."
+  },
+  "accentColor": "#2F6F5E",
+  "bots": [
+    {
+      "botId": "185fdfb5-e100-409f-bf46-4e0b731b5db0",
+      "scopes": ["personal"],
+      "supportsFiles": false,
+      "isNotificationOnly": false
+    }
+  ],
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": []
+}
